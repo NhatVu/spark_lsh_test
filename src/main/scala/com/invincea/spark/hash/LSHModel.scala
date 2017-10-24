@@ -11,7 +11,7 @@ class LSHModel(p : Int, m : Int, numRows : Int) extends Serializable {
   /** generate rows hash functions */
   private val _hashFunctions = ListBuffer[Hasher]()
   for (i <- 0 until numRows)
-    _hashFunctions += Hasher.create(p, m)
+    _hashFunctions += Hasher.create(p, m) // so lượng hash function
   final val hashFunctions : List[(Hasher, Int)] = _hashFunctions.toList.zipWithIndex
     
   /** the signature matrix with (hashFunctions.size signatures) */

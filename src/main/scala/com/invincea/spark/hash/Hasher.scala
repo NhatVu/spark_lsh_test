@@ -18,6 +18,7 @@ class Hasher(a : Int, b : Int, p : Int, m : Int) extends Serializable {
   }
 
   def minhash(v : SparseVector) : Int = {
+    // minhash value cho vector cột. 
     v.indices.map(i => hash(i)).min
   }
   

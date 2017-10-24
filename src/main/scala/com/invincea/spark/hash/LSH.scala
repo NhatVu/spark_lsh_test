@@ -19,17 +19,24 @@ class LSH(data : RDD[SparseVector], p : Int, m : Int, numRows : Int, numBands : 
     //compute signatures from matrix
     // - hash each vector <numRows> times
     // - position hashes into bands. we'll later group these signature bins and has them as well
-    //this gives us ((vector idx, band#), minhash)
-    val signatures = zdata.flatMap(v => model.hashFunctions.flatMap(h => List(((v._2, h._2 % numBands),h._1.minhash(v._1))))).cache()
+    //(// nhật each hash function)this gives us ((vector idx, band#), minhash)
+    // v._2: id của vector 
+    // h._2 % numBands : id của band 
+    // v: vector user 1, user 2
+    val signatures = zdata.flatMap(v => model.hashFunctions.
+        flatMap(h => List(((v._2, h._2 % numBands),h._1.minhash(v._1))))).cache()
 
     //reorganize data for shuffle
-    //this gives us ((band#, hash of minhash list), vector id)
-    //groupByKey gives us items that hash together in the same band   
-    model.bands = signatures.groupByKey().map(x => ((x._1._2, x._2.hashCode), x._1._1)).groupByKey().cache()
+    //this gives us ((band#, hash of minhash list), vector id) 
+    //groupByKey gives us items that hash together in the same band   // 
+    model.bands = signatures.groupByKey().map(x => ((x._1._2, x._2.hashCode), x._1._1)) // tinh hashcode tat ca minhash value trong 1 band cua 1 vector lai 
+                                          .groupByKey().cache() //group vector co trung toan bo minhash trong band 
     
     //we only want groups of size >= <minClusterSize>
     //(vector id, cluster id)
-    model.vector_cluster = model.bands.filter(x => x._2.size >= minClusterSize).map(x => x._2.toList.sorted).distinct().zipWithIndex().map(x => x._1.map(y => (y.asInstanceOf[Long], x._2))).flatMap(x => x.grouped(1)).map(x => x(0)).cache()
+    model.vector_cluster = model.bands.filter(x => x._2.size >= minClusterSize).map(x => x._2.toList.sorted) // bỏ luôn x._1. danh sách vector id trong cùng 1 band 
+                                .distinct().zipWithIndex().map(x => x._1.map(y => (y.asInstanceOf[Long], x._2)))
+                                .flatMap(x => x.grouped(1)).map(x => x(0)).cache()
     
     //(cluster id, vector id)
     model.cluster_vector = model.vector_cluster.map(x => x.swap).cache()
