@@ -2,84 +2,64 @@ package spark;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.DoubleAdder;
 
 import org.apache.spark.mllib.linalg.SparseVector;
 
-/**
- * simple hashing function. defined by ints a, b, p, m 
- * where a and b are seeds with a > 0.
- * p is a prime number, >= u (largest item in the universe)
- * m is the number of hash bins, number of buckets 
- */
-public class Hasher implements Serializable{
-	/**
-	 * 
-	 */
+import com.google.gson.Gson;
+
+public class Hasher implements Serializable {
 	private static final long serialVersionUID = 1L;
-	private int a ;
-	private int b;
-	private int m;
-	private int p;
-	
-	private Hasher(int a, int b, int p, int m) {
-		this.a = a;
-		this.b = b;
-		this.p = p;
-		this.m = m;
+	private List<Double> doubleList;
+
+	public Hasher(List<Double> doubleList) {
+		this.doubleList = doubleList;
 	}
 
-	/** create a new instance providing p and m. a and b random numbers mod p */
-	static public Hasher apply(int m,int p) {
-		return new Hasher(a(p), b(p), p, m);
-	}
-	
-	public int hash(int x){
-	    return ((int) (((long)a*x) + b) % p ) % m;
-	  }
-
-	// minhash 
-	 public int hash(SparseVector v) {
-	    // minhash value cho vector cột. 
-		 int[] ints = v.indices();
-		 List<Integer> indices = new ArrayList<Integer>();
-		 for (int index = 0; index < ints.length; index++)
-		 {
-			 indices.add(ints[index]);
-		 }
-		 return indices.stream().map(i -> hash(i)).min(Integer::compare).get();
-	  }
-
-	/** create a seed "a" */
-	static private int a(int p) {
-		int r = new Random().nextInt(p);
-		if (r == 0)
-			r = a(p);
-		return r;
+	/**
+	 * Generate hashcode (0 or 1) from specific docVector
+	 * 
+	 * @param docVector
+	 * @return 0 or 1
+	 */
+	public int hash(SparseVector docVector) {
+		List<Double> rVector = new ArrayList<>();
+		HashMap<Double, Double> valueMap = new HashMap<>();
+		int size = docVector.values().length >= doubleList.size() ? doubleList.size() : docVector.values().length;
+		for (int i = 0; i < size; i++) {
+			rVector.add(doubleList.get(i));
+			valueMap.put(doubleList.get(i), docVector.values()[i]);
+		}
+		DoubleAdder hashValue = new DoubleAdder();
+		valueMap.entrySet().parallelStream().forEach(e -> {
+			hashValue.add(e.getKey() * e.getValue());
+		});
+		return hashValue.doubleValue() > 0 ? 1 : 0;
 	}
 
-	/** create a seed "b" */
-	static private int b(int p) {
-		return new Random().nextInt(p);
+	public static Hasher apply(int size, long seed) {
+		return new Hasher(randomMatrix(size, seed));
 	}
-	
+
+	private static List<Double> randomMatrix(int size, long seed) {
+		List<Double> buf = new ArrayList<Double>();
+		Random rnd = new Random(seed);
+		for (int i = 0; i < size; i++) {
+			buf.add(rnd.nextGaussian() < 0 ? -1.0 : 1.0);
+		}
+		return buf;
+	}
+
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
-		return "(" + a + ", " + b + ")";
+		return new Gson().toJson(this);
 	}
+
 	public static void main(String[] args) {
-		 List<Integer> x = new ArrayList<Integer>();
-		 x.add(4);
-		 x.add(3);
-		 x.add(5);
-		 
-		 List<Integer> y = new ArrayList<Integer>();
-		 y.add(4);
-		 y.add(3);
-		 y.add(5);
-		 System.out.println(y.hashCode() == x.hashCode());
-		 System.out.println(y.iterator().hashCode() == x.iterator().hashCode());
+		Hasher hasher = Hasher.apply(10, System.nanoTime());
+		System.out.println(hasher.toString());
 	}
 }

@@ -57,8 +57,8 @@ public class Main {
 
 		// get the near neighbors of userId: 4587 in the model
 		JavaRDD<Long> candList = model.getCandidates(1884);
-		logger.info("Number of Candidate Neighbors: " + candList.count());
-		logger.info("Candidate List: " + candList.collect().toString());
+		System.out.println("Number of Candidate Neighbors: " + candList.count());
+		System.out.println("Candidate List: " + candList.collect().toString());
 	}
 
 	public static void main(String[] args) {

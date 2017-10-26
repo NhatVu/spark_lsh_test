@@ -46,7 +46,6 @@ public class LSH implements Serializable {
         JavaPairRDD<Long, SparseVector> dataRDD = data.cache();
         //LSHModel model = new LSHModel(m, r, b);
         Broadcast<LSHModel> model = sc.broadcast(new LSHModel(m, r, b));
-        int test = 1;
         model.getValue().getHashFunctions().get(0l);
         JavaPairRDD<Tuple2<Integer, String>, Long> signatureMatix = dataRDD.flatMap(v -> {
             long hashFId = 0l;
@@ -70,7 +69,7 @@ public class LSH implements Serializable {
         model.getValue().setSignatureMatix(signatureMatix);
 
         /// test 
-        signatureMatix.groupByKey().repartition(1).saveAsTextFile("data/signatureMatrix.txt");//.filter(x -> Lists.newArrayList(x._2()).size() >= 2).collect()
+       // signatureMatix.groupByKey().repartition(1).saveAsTextFile("data/signatureMatrix.txt");//.filter(x -> Lists.newArrayList(x._2()).size() >= 2).collect()
        
         return model.getValue();
     }
